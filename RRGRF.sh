@@ -1,3 +1,4 @@
+
 #!/bin/bash
 
 required_packages=(seqtk minimap2 r-base ncbi-blast+)
@@ -20,49 +21,6 @@ dscaff_folder="$1"
 chr_fasta_folder="$2"
 transp_fasta="$3"
 transp_lengths="$4"
-
-# impartit in intervale out of/inside centromere region
-echo " "
-echo "Analyze the the intervals in/out of centromere region separately? (yes/no)"
-
-read -r answer
-
-if [[ "$answer" == "yes" ]]; then
-  echo " "
-  echo "Introduce the start coordinate of the centromere region for each chromosome:"
-  output_file="centromere_coordinates.txt"
-  > "$output_file"  
-
-  exec 3< "$MAIN_DIR/chr_list.txt"  
-
-  while read -r chr <&3; do
-    while true; do
-      echo " "
-      read -e -r -p "Enter coordinate for $chr: " coordinate
-
-      if [[ "$coordinate" =~ ^[0-9]+$ ]]; then
-        echo "$chr $coordinate" >> "$output_file"
-        echo " "
-        echo "Saved: $chr $coordinate"
-        break
-      else
-        echo " "
-        echo "Invalid input. Please enter a numeric value for $chr."
-      fi
-    done
-  done
-
-elif [[ "$answer" == "no" ]]; then
-  echo " "
-  echo "The analysis will be done for the whole chromosome."
-else
-  echo " "
-  echo "Invalid response. Please answer yes or no."
-fi
-
-echo " "
-echo "getting coordinates from reference..."
-echo " "
 
 # folderul principal
 MAIN_DIR="$PWD"
@@ -94,12 +52,51 @@ sed -i 's/\r$//' "$MAIN_DIR/chr_list.txt"
 
 # duce scriptul R in folderul nou
 cd $MAIN_DIR
-cp ref_coord.R $ref_coord
+cp ref_coords.R $ref_coord
 cd $ref_coord
 
+# impartit in intervale out of/inside centromere region
+echo " "
+echo "Analyze the the intervals in/out of centromere region separately? (yes/no)"
+
+read -r answer
+
+if [[ "$answer" == "yes" ]]; then
+  echo " "
+  echo "Introduce the start coordinate of the centromere region for each chromosome:"
+  output_file="centromere_coordinates.txt"
+  > "$output_file"  
+
+  exec 3< "$MAIN_DIR/chr_list.txt"  
+
+  while read -r chr <&3; do
+    while true; do
+      echo " "
+      read -e -r -p "Enter coordinate for $chr: " coordinate
+
+      if [[ "$coordinate" =~ ^[0-9]+$ ]]; then
+        echo "$chr $coordinate" >> "$output_file"
+        echo " "
+        echo "Saved: $chr $coordinate"
+        break
+      else
+        echo "Invalid input. Please enter a numeric value for $chr."
+      fi
+    done
+  done
+
+elif [[ "$answer" == "no" ]]; then
+  echo "The analysis will be done for the whole chromosome."
+else
+  echo "Invalid response. Please answer yes or no."
+fi
+
+echo " "
+echo "getting coordinates from reference..."
+echo " "
 
 # ruleaza scriptul R
-Rscript ref_coord.R 
+Rscript ref_coords.R 
 
 
 ########################################################
@@ -213,7 +210,7 @@ if [[ "$answer" == "yes" ]]; then
 fi
 
 rm *.csv
-rm ref_coord.R
+rm ref_coords.R
 
 
 #######################################################
@@ -331,11 +328,11 @@ fi
 
 # copiaza scriptul R in folderul actual
 cd $MAIN_DIR
-cp contig_coord_new.R $cont_coord
+cp contig_coords.R $cont_coord
 cd $cont_coord
 
 # ruleaza scriptul R 
-Rscript contig_coord_new.R
+Rscript contig_coords.R
 
 
 echo " "
@@ -411,7 +408,7 @@ mkdir -p $transp_comp
 
 cd $MAIN_DIR
 
-cp $transp_fasta $transp_lengths random_coords.R transposons_comparison.R $transp_comp
+cp $transp_fasta $transp_lengths random_coords.R regions_comparison.R $transp_comp
 
 cd $ref_coord
 cp *limits.txt $transp_comp
@@ -420,8 +417,7 @@ cp centromere_coordinates.txt $transp_comp 2>/dev/null
 
 cd $transp_comp
 
-# Numărăm nucleotidele din fiecare fișier FASTA
-
+# ia lungimile cromozomilor
 for fasta in *.fasta; do
     base_name=$(basename "$fasta" .fasta)
     count=$(grep -v "^>" "$fasta" | tr -d '\n' | wc -c)
@@ -587,13 +583,14 @@ rm *_db.*
 
 # ultimul script R care face tabelele csv
 
-Rscript transposons_comparison.R
+Rscript regions_comparison.R
 
 
 #######################################################
 
 rm *chr.fasta *limits.txt chrom_sizes.txt random_coords.R *comparison.R $transp_fasta $transp_lengths *sequences.fasta
 rm centromere_coordinates.txt 2>/dev/null 
+#rm *blast* *random_coords* *.fasta
 
 # pune fisierle in foldere separate pt fiecare crz
 while read chr; do
@@ -613,7 +610,8 @@ done < "$MAIN_DIR/chr_list.txt"
 
 cd $cont_coord
 
-rm *chr.fasta *assembly.fasta contig_coord_new.R
+rm *chr.fasta *assembly.fasta contig_coords.R 
+#rm *.paf
 rm *extracted_sequences.fasta *extr_seq.fasta 2>/dev/null
 
 while read chr; do
@@ -627,5 +625,4 @@ rm chr_list.txt
 echo " "
 echo "done"
 echo " "
-
 
