@@ -16,7 +16,7 @@ data_list <- lapply(files, read.csv)
 min_count <- 10 
 
 # distanta maxima dintre 2 col luate in acelasi grup
-group_gap <- 2 
+group_gap <- 5 
 
 
 # ia pe rand fiecare tabel
@@ -73,8 +73,8 @@ for (file in files) {
     
       # daca grupul are mai mult de o col, ia limitele la 2 col la stanga/dreapta
       if (length(current_group) > 1) {
-        left_boundary <- max(2, min(current_group) - 1)
-        right_boundary <- min(num_cols, max(current_group) + 1)
+        left_boundary <- max(2, min(current_group) - 2)
+        right_boundary <- min(num_cols, max(current_group) + 2)
         
       } else {
         # daca e o singura col, limitele sunt prima col la stanga/dreapta
